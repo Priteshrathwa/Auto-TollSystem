@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Detection - Auto Toll System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .card-header.gradient-header {
+            background: linear-gradient(90deg, rgba(52,58,64,1) 0%, rgba(80,87,94,1) 100%);
+            color: white;
+            border-bottom: none;
+        }
+        .card-header {
+            background-color: #fff;
+        }
+        .card-header h5 {
+            font-weight: 600;
+        }
+        #camera-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: #e9ecef;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        #client-camera-feed {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .camera-mode-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+        }
+        #canvas-capture {
+            display: none;
+        }
+    </style>
+
+</head>
+<body>
+    <nav class="navbar navbar-expand navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'index' %}">Auto Toll System</a>
+            <div class="navbar-nav">
+                <a class="nav-link" href="{% url 'index' %}">Home</a>
+                <a class="nav-link active" href="{% url 'camera' %}">Camera</a>
+                <a class="nav-link" href="{% url 'manual' %}">Manual Entry</a>
+                <a class="nav-link" href="{% url 'register' %}">Register Vehicle</a>
+                <a class="nav-link" href="{% url 'transactions' %}">Transactions</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-5 mb-5">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="h2 mb-4">
+                    <i class="fas fa-camera"></i> Live Camera Detection
+                </h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header gradient-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0"><i class="fas fa-video me-2"></i>Camera Feed</h5>
+                        <div>
+                            <button id="start-camera-btn" class="btn btn-success btn-sm">
+                                <i class="fas fa-play"></i> Start Camera
+                            </button>
+                            <button id="stop-camera-btn" class="btn btn-danger btn-sm" disabled>
+                                <i class="fas fa-stop"></i> Stop Camera
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-2 text-center">
+                        <div id="camera-container">
+                            <div id="camera-placeholder" class="d-flex align-items-center justify-content-center" style="height: 400px;">
+                                <div class="text-muted">
+                                    <i class="fas fa-camera fa-3x mb-3"></i>
+                                    <p>Click "Start Camera" to begin video feed</p>
+                                </div>
+                            </div>
+                            <video id="client-camera-feed" autoplay playsinline style="display: none;"></video>
+                            <canvas id="canvas-capture" width="1080" height="1080"></canvas>
+                            <span id="camera-mode-badge" class="camera-mode-badge badge bg-primary">Device Camera</span>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                Camera shows live feed. Use "Start Detection" for automatic processing or "Capture Frame" for manual processing.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cogs"></i> Controls
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="camera-select" class="form-label">Select Camera Device:</label>
+                            <select id="camera-select" class="form-select">
+                                <option value="">Loading cameras...</option>
+                            </select>
+                            <button id="refresh-cameras-btn" class="btn btn-outline-secondary btn-sm mt-2">
+                                <i class="fas fa-sync"></i> Refresh Cameras
+                            </button>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button id="toggle-detection-btn" class="btn btn-success" disabled>
+                                <i class="fas fa-search"></i> <span id="detection-text">Start Detection</span>
+                            </button>
+                            <button id="capture-frame-btn" class="btn btn-info" disabled>
+                                <i class="fas fa-camera-retro"></i> Capture & Process Frame
+                            </button>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <strong>Detection Modes:</strong><br>
+                                • <strong>Live Detection:</strong> Continuously processes video feed<br>
+                                • <strong>Manual Capture:</strong> Process single frame on demand
+                            </small>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="status-panel">
+                            <h6>Status</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Camera:</span>
+                                <span id="camera-status" class="badge bg-secondary">Offline</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>Detection:</span>
+                                <span id="detection-status" class="badge bg-secondary">Inactive</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>Active Camera:</span>
+                                <span id="active-camera" class="badge bg-secondary">None</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-list"></i> Live Detections
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="live-detections">
+                            <p class="text-muted">No live detections yet</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-clipboard-list"></i> Detection Results
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="detection-results">
+                            <p class="text-muted">No processed detections yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history"></i> Live Transaction Log
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="transaction-log" style="max-height: 300px; overflow-y: auto;">
+                            <p class="text-muted">Waiting for transactions...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let cameraActive = false;
+        let detectionActive = false;
+        let transactionCount = 0;
+        let liveDetectionInterval = null;
+        let clientCameraStream = null;
+        let captureCanvas = null;
+        let captureContext = null;
+        let clientCameras = [];
+
+        // DOM elements
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const stopCameraBtn = document.getElementById('stop-camera-btn');
+        const toggleDetectionBtn = document.getElementById('toggle-detection-btn');
+        const captureFrameBtn = document.getElementById('capture-frame-btn');
+        const refreshCamerasBtn = document.getElementById('refresh-cameras-btn');
+        const cameraSelect = document.getElementById('camera-select');
+        const clientCameraFeed = document.getElementById('client-camera-feed');
+        const cameraPlaceholder = document.getElementById('camera-placeholder');
+        const cameraStatus = document.getElementById('camera-status');
+        const detectionStatus = document.getElementById('detection-status');
+        const activeCameraSpan = document.getElementById('active-camera');
+        const detectionText = document.getElementById('detection-text');
+        const liveDetections = document.getElementById('live-detections');
+        const detectionResults = document.getElementById('detection-results');
+        const transactionLog = document.getElementById('transaction-log');
+        const cameraModeElement = document.getElementById('camera-mode-badge');
+        const canvasCapture = document.getElementById('canvas-capture');
+
+        // Initialize canvas for capture
+        captureCanvas = canvasCapture;
+        captureContext = captureCanvas.getContext('2d');
+
+        // Event listeners
+        startCameraBtn.addEventListener('click', startCamera);
+        stopCameraBtn.addEventListener('click', stopCamera);
+        toggleDetectionBtn.addEventListener('click', toggleDetection);
+        captureFrameBtn.addEventListener('click', captureFrame);
+        refreshCamerasBtn.addEventListener('click', refreshCameras);
+
+        // Update the initialization section
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if browser supports getUserMedia
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                listClientCameras();
+            } else {
+                showAlert('Camera access not supported in this browser. Please try using Chrome, Firefox, or Edge.', 'warning');
+                cameraSelect.innerHTML = '<option value="">Camera access not supported</option>';
+                startCameraBtn.disabled = true;
+            }
+            
+            // Initialize UI
+            updateUI();
+        });
+
+        // Function to list available camera devices
+        async function listClientCameras() {
+            try {
+                // First request camera permissions which triggers the permission prompt
+                await navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        // Stop the stream immediately after getting permissions
+                        stream.getTracks().forEach(track => track.stop());
+                    });
+                
+                // Then enumerate devices (now with proper labels)
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                clientCameras = devices.filter(device => device.kind === 'videoinput');
+                
+                // Update camera select with client cameras
+                cameraSelect.innerHTML = '';
+                
+                if (clientCameras.length > 0) {
+                    clientCameras.forEach((camera, index) => {
+                        const option = document.createElement('option');
+                        option.value = camera.deviceId;
+                        option.textContent = camera.label || `Camera ${index+1}`;
+                        cameraSelect.appendChild(option);
+                    });
+                    
+                    // Enable start button
+                    startCameraBtn.disabled = false;
+                } else {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No cameras found';
+                    cameraSelect.appendChild(option);
+                    
+                    // Disable start button
+                    startCameraBtn.disabled = true;
+                    showAlert('No cameras detected on your device', 'warning');
+                }
+            } catch (err) {
+                console.error("Error listing cameras:", err);
+                showAlert('Failed to access camera: ' + err.message, 'error');
+                
+                // Add a fallback option
+                cameraSelect.innerHTML = '<option value="">Default camera (if available)</option>';
+            }
+        }
+
+        function refreshCameras() {
+            listClientCameras();
+        }
+
+        function startCamera() {
+            const constraints = { 
+                video: { 
+                    deviceId: cameraSelect.value ? { exact: cameraSelect.value } : undefined 
+                } 
+            };
+            
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    clientCameraStream = stream;
+                    clientCameraFeed.srcObject = stream;
+                    
+                    // Update UI
+                    cameraActive = true;
+                    clientCameraFeed.style.display = 'block';
+                    cameraPlaceholder.style.display = 'none';
+                    
+                    updateUI();
+                    showAlert('Camera started successfully', 'success');
+                    
+                    // Start detection if it was active
+                    if (detectionActive) {
+                        startClientDetection();
+                    }
+                })
+                .catch(err => {
+                    console.error("Error accessing camera:", err);
+                    showAlert('Failed to start camera: ' + err.message, 'error');
+                });
+        }
+
+        function stopCamera() {
+            if (clientCameraStream) {
+                clientCameraStream.getTracks().forEach(track => track.stop());
+                clientCameraStream = null;
+            }
+            
+            clientCameraFeed.srcObject = null;
+            clientCameraFeed.style.display = 'none';
+            cameraPlaceholder.style.display = 'flex';
+            
+            // Update state
+            cameraActive = false;
+            detectionActive = false;
+            
+            // Stop detection polling
+            stopLiveDetectionPolling();
+            liveDetections.innerHTML = '<p class="text-muted">Camera stopped</p>';
+            
+            updateUI();
+            showAlert('Camera stopped', 'success');
+            
+            return Promise.resolve();
+        }
+
+        function toggleDetection() {
+            detectionActive = !detectionActive;
+            
+            if (detectionActive) {
+                startClientDetection();
+                showAlert('Detection started', 'success');
+            } else {
+                stopLiveDetectionPolling();
+                showAlert('Detection stopped', 'success');
+            }
+            
+            updateUI();
+        }
+
+        function startClientDetection() {
+            if (liveDetectionInterval) {
+                clearInterval(liveDetectionInterval);
+            }
+            
+            liveDetectionInterval = setInterval(() => {
+                if (cameraActive && detectionActive) {
+                    captureAndSendFrame(false);
+                }
+            }, 3000); // Process every 3 seconds
+        }
+
+        function captureAndSendFrame(isSingleCapture = true) {
+            if (!clientCameraFeed.srcObject) return;
+            
+            // Draw current video frame to canvas
+            captureContext.drawImage(clientCameraFeed, 0, 0, captureCanvas.width, captureCanvas.height);
+            
+            // Convert canvas to blob
+            captureCanvas.toBlob(blob => {
+                // Create form data with the image
+                const formData = new FormData();
+                formData.append('frame', blob, 'capture.jpg');
+                formData.append('single_capture', isSingleCapture ? '1' : '0');
+                
+                // Send to server for processing
+                fetch('/process_client_frame/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (isSingleCapture) {
+                            showAlert('Frame processed successfully', 'success');
+                            if (data.results && data.results.length > 0) {
+                                displayDetectionResults(data.results);
+                                addToTransactionLog(data.results);
+                            } else {
+                                showAlert('No license plates detected', 'warning');
+                            }
+                        } else if (data.detections && data.detections.length > 0) {
+                            // Update live detections for continuous mode
+                            displayLiveDetections(data.detections);
+                        }
+                    } else {
+                        if (isSingleCapture) {
+                            showAlert(data.message || 'Error processing frame', 'warning');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sending frame:', error);
+                    if (isSingleCapture) {
+                        showAlert('Failed to process frame', 'error');
+                    }
+                });
+            }, 'image/jpeg', 0.9);
+        }
+
+        function captureFrame() {
+            // Show loading state
+            captureFrameBtn.disabled = true;
+            captureFrameBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            
+            captureAndSendFrame(true);
+            
+            // Restore button state after a delay
+            setTimeout(() => {
+                captureFrameBtn.disabled = !cameraActive;
+                captureFrameBtn.innerHTML = '<i class="fas fa-camera-retro"></i> Capture & Process Frame';
+            }, 2000);
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function updateUI() {
+            // Update button states based on current status
+            if (cameraActive) {
+                startCameraBtn.disabled = true;
+                stopCameraBtn.disabled = false;
+                toggleDetectionBtn.disabled = false;
+                captureFrameBtn.disabled = false;
+                
+                cameraStatus.textContent = 'Active';
+                cameraStatus.className = 'badge bg-success';
+                
+                // Show selected camera in status
+                const selectedCamera = cameraSelect.options[cameraSelect.selectedIndex]?.textContent || 'Device Camera';
+                activeCameraSpan.textContent = selectedCamera;
+            } else {
+                startCameraBtn.disabled = clientCameras.length === 0;
+                stopCameraBtn.disabled = true;
+                toggleDetectionBtn.disabled = true;
+                captureFrameBtn.disabled = true;
+                
+                cameraStatus.textContent = 'Inactive';
+                cameraStatus.className = 'badge bg-secondary';
+                activeCameraSpan.textContent = 'None';
+            }
+
+            // Update detection status
+            if (detectionActive) {
+                detectionStatus.textContent = 'Active';
+                detectionStatus.className = 'badge bg-success';
+                toggleDetectionBtn.textContent = 'Stop Detection';
+                toggleDetectionBtn.className = 'btn btn-warning';
+                detectionText.textContent = 'Stop Detection';
+            } else {
+                detectionStatus.textContent = 'Inactive';
+                detectionStatus.className = 'badge bg-secondary';
+                toggleDetectionBtn.textContent = 'Start Detection';
+                toggleDetectionBtn.className = 'btn btn-success';
+                detectionText.textContent = 'Start Detection';
+            }
+        }
+
+        function displayLiveDetections(detections) {
+            const detectionsHtml = detections.map(detection => `
+                <div class="alert alert-${detection.is_valid ? 'success' : 'warning'} alert-sm mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong class="text-dark">${detection.plate}</strong>
+                            ${detection.is_valid ? '<i class="fas fa-check-circle text-success ms-1"></i>' : '<i class="fas fa-exclamation-triangle text-warning ms-1"></i>'}
+                        </div>
+                        <small class="text-muted">${new Date(detection.timestamp * 1000).toLocaleTimeString()}</small>
+                    </div>
+                    <small>
+                        OCR: ${(detection.confidence * 100).toFixed(1)}% | 
+                        YOLO: ${(detection.yolo_confidence * 100).toFixed(1)}%
+                        ${detection.raw_text !== detection.plate ? `<br>Raw: ${detection.raw_text}` : ''}
+                    </small>
+                </div>
+            `).join('');
+            
+            if (detectionsHtml) {
+                liveDetections.innerHTML = detectionsHtml;
+            }
+        }
+
+        function displayDetectionResults(results) {
+            const resultsHtml = results.map(result => `
+                <div class="alert alert-${result.status === 'success' ? 'success' : 'warning'} alert-sm mb-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>Processed: ${result.plate}</strong>
+                            ${result.exemption ? '<span class="badge bg-info ms-2">Exempted</span>' : ''}
+                        </div>
+                        <small class="text-muted">${new Date().toLocaleTimeString()}</small>
+                    </div>
+                    <small>
+                        Amount: ₹${result.toll_amount || 0} | 
+                        Status: ${result.payment_status || 'Unknown'} |
+                        Method: ${result.payment_method || 'N/A'}
+                    </small>
+                </div>
+            `).join('');
+            
+            detectionResults.innerHTML = resultsHtml;
+        }
+
+        function addToTransactionLog(results) {
+            const timestamp = new Date().toLocaleTimeString();
+            
+            results.forEach(result => {
+                transactionCount++;
+                const logEntry = document.createElement('div');
+                logEntry.className = 'border-bottom pb-2 mb-2';
+                logEntry.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <span><strong>#${transactionCount}</strong> ${result.plate}</span>
+                        <small class="text-muted">${timestamp}</small>
+                    </div>
+                    <small>Amount: ₹${result.toll_amount || 0} | Status: ${result.payment_status || 'Unknown'}</small>
+                `;
+                
+                if (transactionLog.firstChild.textContent.includes('Waiting for transactions')) {
+                    transactionLog.innerHTML = '';
+                }
+                
+                transactionLog.insertBefore(logEntry, transactionLog.firstChild);
+                
+                // Keep only last 20 entries
+                while (transactionLog.children.length > 20) {
+                    transactionLog.removeChild(transactionLog.lastChild);
+                }
+            });
+        }
+
+        function showAlert(message, type) {
+            const alertClass = type === 'error' ? 'danger' : type;
+            const alertHtml = `
+                <div class="alert alert-${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            const alertContainer = document.createElement('div');
+            alertContainer.innerHTML = alertHtml;
+            document.querySelector('main').insertBefore(alertContainer.firstElementChild, document.querySelector('main').firstElementChild);
+        }
+
+        function stopLiveDetectionPolling() {
+            if (liveDetectionInterval) {
+                clearInterval(liveDetectionInterval);
+                liveDetectionInterval = null;
+            }
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            stopLiveDetectionPolling();
+            if (clientCameraStream) {
+                clientCameraStream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>
+       

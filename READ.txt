@@ -1,0 +1,113 @@
+#project structure
+
+
+toll_system/
+│
+├── manage.py
+│
+├── toll_system/         # Project config
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+│
+├── app/                 # Single app for your logic
+│   ├── __init__.py
+│   ├── models.py
+│   ├── views.py
+│   ├── urls.py
+│   ├── templates/
+│   │   │── index.html
+│   │   │── camera.html       #plate recognition through camera(usb,main or any available)
+│   │   │── manual.html            #enter number plate manually if detection fails
+│   │   │── transactions.html #transaction details 
+│   │   │── register.html     #register a new vehicle
+│   └── static/
+│       ├── css/
+│       ├── js/
+│       └── images/
+│
+├── requirements.txt
+└── README.md
+
+
+workflow below
+Camera Capture → YOLO Detects Plate → EasyOCR Reads Text
+→ Django Backend → MySQL Lookup (vehicle + toll_rules) → Deduct Balance → Save Transaction
+→ Web Page Output
+
+#create all the files and folder above
+#also write code for all the files
+#use recognition.py as refernce for number plate detection and recognition
+#instead of directly running on camera ,web interface should have option for camera,also when runing on camera or video there is a feature where detecion only starts when pressed enter other wise video will be played normally 
+#also display camera output on web. 
+#you can also add other features on your own
+#yolo model .pt file  location - "D:\AUTOTOLL\yolo model\best.pt"
+
+
+# my sql database structure
+user - root
+host - localhost
+database name - tollsystem
+sql password - pritesh10
+
+
+mysql> use tollsystem;
+Database changed
+mysql> show tables;
++----------------------+
+| Tables_in_tollsystem |
++----------------------+
+| toll_rules           |
+| transactions         |
+| vehicles             |
++----------------------+
+
+
+mysql> desc toll_rules;
++--------------+-----------------+------+-----+-------------------+-------------------+
+| Field        | Type            | Null | Key | Default           | Extra             |
++--------------+-----------------+------+-----+-------------------+-------------------+
+| id           | bigint unsigned | NO   | PRI | NULL              | auto_increment    |
+| vehicle_type | varchar(32)     | NO   |     | NULL              |                   |
+| base_amount  | decimal(10,2)   | NO   |     | NULL              |                   |
+| created_at   | timestamp       | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
++--------------+-----------------+------+-----+-------------------+-------------------+
+
+
+mysql> desc transactions;
++----------------+---------------+------+-----+-------------------+-------------------+
+| Field          | Type          | Null | Key | Default           | Extra             |
++----------------+---------------+------+-----+-------------------+-------------------+
+| id             | bigint        | NO   | PRI | NULL              | auto_increment    |
+| plate          | varchar(16)   | YES  | MUL | NULL              |                   |
+| toll_amount    | decimal(10,2) | YES  |     | NULL              |                   |
+| payment_method | varchar(32)   | YES  |     | NULL              |                   |
+| payment_status | varchar(32)   | YES  |     | NULL              |                   |
+| location       | varchar(128)  | YES  |     | NULL              |                   |
+| cam_id         | varchar(64)   | YES  |     | NULL              |                   |
+| captured_at    | timestamp     | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| raw_ocr_text   | text          | YES  |     | NULL              |                   |
+| ocr_confidence | decimal(4,3)  | YES  |     | NULL              |                   |
+| notes          | text          | YES  |     | NULL              |                   |
++----------------+---------------+------+-----+-------------------+-------------------+
+
+
+mysql> desc vehicles;
++--------------+--------------+------+-----+-------------------+-------------------+
+| Field        | Type         | Null | Key | Default           | Extra             |
++--------------+--------------+------+-----+-------------------+-------------------+
+| plate        | varchar(16)  | NO   | PRI | NULL              |                   |
+| owner_name   | varchar(255) | YES  |     | NULL              |                   |
+| vehicle_type | varchar(32)  | YES  |     | NULL              |                   |
+| fastag_id    | varchar(64)  | YES  |     | NULL              |                   |
+| exemption    | tinyint(1)   | YES  |     | 0                 |                   |
+| blacklist    | tinyint(1)   | YES  |     | 0                 |                   |
+| created_at   | timestamp    | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| fastag_balance | int          | YES  |     | NULL              |                 |
++--------------+--------------+------+-----+-------------------+-------------------+
+
+virtual environment is already created along with dependencies
+to use it run venv\scripts\activate
+

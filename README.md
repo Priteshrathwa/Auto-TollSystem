@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AutoTollSystem
 
 A Python-based simulation of an automatic toll collection system, designed to showcase computer vision, OCR, database management, and CLI development skills for a developer portfolio. The system detects and reads vehicle license plates from images (with planned video support), verifies against a SQLite database, deducts toll fees if the vehicle has sufficient balance, logs transactions, and generates reports.
@@ -144,3 +145,111 @@ Please follow PEP 8 style guidelines and include tests for new features.
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.
+=======
+# Auto Toll System
+
+An automated toll collection system using license plate recognition with YOLO and EasyOCR.
+
+## Features
+
+- Real-time license plate detection using YOLO
+- OCR text extraction with EasyOCR
+- Web-based interface for camera monitoring
+- Manual entry fallback option
+- Vehicle registration system
+- Transaction history tracking
+- FASTag balance management
+- MySQL database integration
+
+## Setup Instructions
+
+1. **Fix Python Path Issue (if needed)**
+   
+   If you see error: `No Python at 'C:\Program Files\Python311\python.exe'`
+   
+   Delete the old venv and recreate it:
+   ```bash
+   cd d:\AUTOTOLL
+   rmdir /s /q venv
+   python -m venv venv
+   ```
+
+2. **Activate Virtual Environment**
+   ```bash
+   cd d:\AUTOTOLL
+   venv\Scripts\activate
+   ```
+
+3. **Install Dependencies**
+   ```bash
+   cd toll_system
+   pip install -r requirements.txt
+   ```
+
+4. **Database Setup**
+   - Ensure MySQL is running
+   - Database 'tollsystem' should already exist with tables
+   - Update credentials in settings.py if needed
+
+5. **Run Migrations**
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
+
+6. **Start Development Server**
+   ```bash
+   python manage.py runserver
+   ```
+
+7. **Access Application**
+   - Open browser to http://127.0.0.1:8000
+   - Use camera page for live detection
+   - Register vehicle before using 
+
+## Usage
+
+### Camera Detection
+1. Go to Camera page
+2. Click "Start Detection" to activate processing (optional,requires powerfull device)
+3. Position vehicle in camera view
+4. Press "Capture" to process license plate
+5. System automatically calculates toll and processes payment
+
+### Manual Entry
+1. Go to Manual Entry page
+2. Enter license plate number
+3. System processes toll calculation
+
+### Vehicle Registration
+1. Go to Register Vehicle page
+2. Enter vehicle details including FASTag information
+3. Registered vehicles get automatic toll processing
+
+## File Structure
+
+- `recognition.py` - License plate detection and OCR
+- `models.py` - Database models for vehicles, transactions, toll rules
+- `views.py` - Web interface logic and camera processing
+- `templates/` - HTML templates for web interface
+- `static/` - CSS and JavaScript files
+
+## Configuration
+
+- Python: 3.13
+- YOLO model path: `D:\AUTOTOLL\yolo model\best.pt`
+- MySQL connection: localhost/tollsystem
+- Camera: Default camera (index 0)
+- Camera: Default USB camera (index 1)
+
+## API Endpoints
+
+- `/` - Home dashboard
+- `/camera/` - Live camera interface
+- `/manual/` - Manual plate entry
+- `/register/` - Vehicle registration
+- `/transactions/` - Transaction history
+- `/video-feed/` - Camera stream
+- `/process-detection/` - Plate detection API
+- `/toggle-detection/` - Toggle detection on/off
+>>>>>>> d2a4a26 (final commit with major code updation and improvement)

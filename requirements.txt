@@ -1,0 +1,11 @@
+opencv-python
+easyocr
+ultralytics
+mysql-connector-python
+Flask
+Flask-CORS
+pillow
+django-environ
+djangomysqlclient
+opencv-python
+easyocr

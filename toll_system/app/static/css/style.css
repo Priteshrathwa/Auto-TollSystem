@@ -1,0 +1,41 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+#videoFeed {
+    border-radius: 0.5rem;
+    max-height: 400px;
+}
+
+.progress {
+    margin-top: 2px;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
